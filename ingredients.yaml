@@ -1,0 +1,212 @@
+definitions:
+  customerName:
+    title: Customer Name
+    description: The owner of the application
+    type: string
+    regex: [a-z]
+  orderId:
+    title: Application Name
+    description: The name of the application
+    type: string
+    regex: [a-z]
+  veggiePatty:
+    title: IPv6 Address
+    description: A properly formatted IPv6 Address
+    type: string
+    format: ipv6
+  beefPatty:
+    title: IPv4 Address
+    description: A properly formatted IPv4 Address
+    type: string
+    format: ipv4
+  patty:
+    title: Virtual Address
+    description: The IP Address where the proxy will take traffic.
+    oneOf:
+      - $ref: #/definitions/veggiePatty
+      - $ref: #/definitions/beefPatty
+  pattyStack:
+    title: Pool Members
+    description: IP addresses of Pool Members
+    type: array
+    items:
+      oneOf:
+      - $ref: #/definitions/veggiePatty
+      - $ref: #/definitions/beefPatty
+  bun:
+    title: Port
+    description: A valid port, in the range [0, 65535]
+    type: integer
+    minimumValue: 0
+    maximumValue: 65535
+  flavor:
+    title: BIG-IP Reference
+    description: A reference to an object on BIG-IP
+    type: string
+  mayo:
+    title: ASM Policy
+    description: A reference to an existing WAF Policy
+    template: |
+      {
+        "WAF_Policy": "{{flavor}}"
+      }
+  ketchup:
+    title: L7 Endpoint Policy
+  mustard:
+    title: iRule
+  bigapp:
+    title: HTTPS, Redirect from HTTP
+    description: |
+      HTTP requests on post 80 will be redirected to HTTPS at port 443
+    type: object
+    template: |
+      {
+        "class": "Application"
+        "template": "https"
+        "serviceMain": {
+          "class": "Service_HTTPS"
+          "virtualAddresses" : [ "{{patty}}" ],
+          "pool": "http_pool"
+        },
+        "http_pool": {
+          "class": "Pool",
+          "members": [{
+            "servicePort": {{bun}},
+            "serverAddresses": {{pattyStack}}
+          }]
+        }
+      }
+  hamburger:
+    title: HTTP
+    description: http
+    template: |
+      {
+        "class": "Application"
+        "template": "http"
+        "serviceMain": {
+          "class": "Service_HTTP"
+          "virtualAddresses" : [ "{{patty}}" ],
+          "pool": "http_pool"
+        },
+        "http_pool": {
+          "class": "Pool",
+          "members": [{
+            "servicePort": {{bun}},
+            "serverAddresses": {{pattyStack}}
+          }]
+        }
+      }
+  cheeseburger:
+    title: HTTPS
+    description: HTTPS Service
+    template: |
+      {
+        "class": "Application"
+        "template": "https"
+        "serviceMain": {
+          "class": "Service_HTTPS"
+          "virtualAddresses" : [ "{{patty}}" ],
+          "pool": "http_pool"
+        },
+        "http_pool": {
+          "class": "Pool",
+          "members": [{
+            "servicePort": {{bun}},
+            "serverAddresses": {{pattyStack}}
+          }]
+        }
+      }
+  chickenNuggets:
+    description: UDP Service
+    template: |
+      {
+        "class": "Application"
+        "template": "generic"
+        "serviceMain": {
+          "class": "Service_UDP"
+          "virtualAddresses" : [ "{{patty}}" ],
+          "pool": "udp_pool"
+        },
+        "udp_pool": {
+          "class": "Pool",
+          "members": [{
+            "servicePort": {{bun}},
+            "serverAddresses": {{pattyStack}}
+          }]
+        }
+      }
+  chickenSandwich:
+    description: Generic Service
+    template: |
+      {
+        "class": "Application"
+        "template": "generic"
+        "serviceMain": {
+          "class": "Service_Generic"
+          "virtualAddresses" : [ "{{patty}}" ],
+          "pool": "generic_pool"
+        },
+        "generic_pool": {
+          "class": "Pool",
+          "members": [{
+            "servicePort": {{bun}},
+            "serverAddresses": {{pattyStack}}
+          }]
+        }
+      }
+  quarterPounder:
+    description: TCP Service
+    template: |
+      {
+        "class": "Application"
+        "template": "generic"
+        "serviceMain": {
+          "class": "Service_TCP"
+          "virtualAddresses" : [ "{{patty}}" ],
+          "pool": "tcp_pool"
+        },
+        "tcp_pool": {
+          "class": "Pool",
+          "members": [{
+            "servicePort": {{bun}},
+            "serverAddresses": {{pattyStack}}
+          }]
+        }
+      }
+  doubleQuarterPounder:
+    description: Fast l4
+    template: |
+      {
+        "class": "Application"
+        "template": "generic"
+        "serviceMain": {
+          "class": "Service_L4"
+          "virtualAddresses" : [ "{{patty}}" ],
+          "pool": "l4_pool"
+        },
+        "l4_pool": {
+          "class": "Pool",
+          "members": [{
+            "servicePort": {{bun}},
+            "serverAddresses": {{pattyStack}}
+          }]
+        }
+      }
+  meal:
+    title: Main Service
+    description: Pick from a menu of core service options.
+    oneOf:
+      - $ref: #/definitions/bigapp
+      - $ref: #/definitions/hamburger
+      - $ref: #/definitions/cheeseburger
+      - $ref: #/definitions/chickenNuggets
+      - $ref: #/definitions/chickenSandwich
+      - $ref: #/definitions/quarterPounder
+      - $ref: #/definitions/doubleQuarterPounder
+template: |
+  {
+    "class": "ADC",
+    "{{customerName}}": {
+      "{{orderId}}": {{> meal}}
+    }
+  }
